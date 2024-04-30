@@ -88,8 +88,11 @@ func (f *Frame) write() {
 				return
 			}
 
+			wg := &sync.WaitGroup{}
+			wg.Add(len(f.writers))
 			for _, w := range f.writers {
 				if err := f.pool.Submit(func() {
+					defer wg.Done()
 					// backup pressure
 					w.Next(f.ctx)
 
@@ -101,6 +104,8 @@ func (f *Frame) write() {
 					return
 				}
 			}
+
+			wg.Wait()
 
 			// save point
 			if err := f.chk.Save(data); err != nil {
